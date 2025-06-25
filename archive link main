@@ -1,0 +1,51 @@
+#The following uses Python to interact with the CDX server from the WayBack Machine 
+#located at -> https://archive.org/developers/wayback-cdx-server.html
+#Using the CDX server will return a portion of the index, one per row, for each ‘capture’ of the url “archive.org” that is available in the archive.
+#get all the archived URLs for the wayback machine using their cdx search with their archival date and time
+import csv
+import requests
+import pandas as pd 
+#create a function first using requests.get method. 
+def snapshots(url):
+    api_url = f"https://web.archive.org/cdx/search/cdx?url={url}&output=json"
+    response = requests.get(api_url)
+    data = response.json()
+
+    #create a list to store each archived link
+    if len(data) > 1:
+        archived_list = []
+        for entry in data[1:]:
+            timestamp = entry[1]
+            archive_url = f"https://web.archive.org/web/{timestamp}/{url}"
+            archived_list.append((timestamp, archive_url))
+        return archived_list
+    else:
+        return []
+
+# Change the URls as needed here. Could also use a dict to store and iterate- often the URLs need to be shortened for further examination of archives
+# url="" #paste your desired URL here. Often if you have a long URL, try shortening the URL as they are more likely to be archived.
+#simple example
+url="https://diversa.com.au"
+
+archived_list= snapshots(url)
+#now we will get the number of times a URL has been archived.
+if archived_list:
+    print(f"Found {len(archived_list)} archived list:\n")
+    for timestamp, archive_url in archived_list:
+        print(f"Archived on: {timestamp} - URL: {archive_url}")
+else:
+    print("No archived versions found.")
+
+# Save the archived list to a csv file if it's not empty.
+if len(archived_list) > 0:
+    try:
+        # Convert the list to a DataFrame.
+        df = pd.DataFrame(archived_list, columns=['Timestamp', 'ArchiveURL'])
+        df.to_csv("filename.csv", index=False)
+        print("\nSuccessfully saved the list to filename.csv")
+    except Exception as e:
+      
+        print(f"\nAn error occurred while saving the file: {e}")
+else:
+
+    print("No archived versions found, so no file was created.")
